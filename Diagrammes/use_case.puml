@@ -1,0 +1,64 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+
+actor Utilisateur
+actor Admin
+Admin --|> Utilisateur
+
+rectangle "Application communautaire" {
+
+  ' 🔐 Authentification
+  Utilisateur --> (S'inscrire)
+  Utilisateur --> (Se connecter)
+  Utilisateur --> (Se déconnecter)
+
+  ' 👤 Profil
+  Utilisateur --> (Gérer profil)
+  (Gérer profil) ..> (Se connecter) : <<include>>
+
+  ' 💬 Questions
+  Utilisateur --> (Publier une question)
+  Utilisateur --> (Modifier sa question)
+  Utilisateur --> (Supprimer sa question)
+  Utilisateur --> (Consulter les questions)
+
+  (Publier une question) ..> (Se connecter) : <<include>>
+  (Modifier sa question) ..> (Se connecter) : <<include>>
+  (Supprimer sa question) ..> (Se connecter) : <<include>>
+
+
+  (Consulter les questions) ..> (Rechercher par mot-clé) : <<extend>>
+  (Consulter les questions) ..> (Filtrer par lieu) : <<extend>>
+  (Consulter les questions) ..> (Trier par distance) : <<extend>>
+
+  ' 💡 Réponses
+  Utilisateur --> (Ajouter une réponse)
+  Utilisateur --> (Consulter les réponses)
+
+  (Ajouter une réponse) ..> (Se connecter) : <<include>>
+  (Ajouter une réponse) ..> (Consulter une question) : <<include>>
+
+  ' ⭐ Favoris
+  Utilisateur --> (Ajouter aux favoris)
+  Utilisateur --> (Retirer des favoris)
+
+  (Ajouter aux favoris) ..> (Se connecter) : <<include>>
+  (Retirer des favoris) ..> (Se connecter) : <<include>>
+
+  ' 📊 Statistiques
+  Utilisateur --> (Consulter statistiques)
+
+  ' 🛠️ Admin
+  Admin --> (Gérer toutes les questions)
+  Admin --> (Gérer toutes les réponses)
+  Admin --> (Gérer utilisateurs)
+
+  (Gérer toutes les questions) ..> (Se connecter) : <<include>>
+  (Gérer toutes les réponses) ..> (Se connecter) : <<include>>
+  (Gérer utilisateurs) ..> (Se connecter) : <<include>>
+
+  (Gérer toutes les questions) ..> (Supprimer question) : <<include>>
+  (Gérer toutes les réponses) ..> (Supprimer réponse) : <<include>>
+}
+@enduml

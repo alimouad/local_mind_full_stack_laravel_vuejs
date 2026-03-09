@@ -1,0 +1,81 @@
+@startuml
+skinparam classAttributeIconSize 0
+
+' =====================
+' 👤 User
+' =====================
+class User {
+  +id : int
+  +name : string
+  +email : string
+  +password : string
+  +role : string
+  +created_at : datetime
+  +updated_at : datetime
+
+  +questions()
+  +responses()
+  +favorites()
+}
+
+' =====================
+' ❓ Question
+' =====================
+class Question {
+  +id : int
+  +title : string
+  +content : text
+  +location : string
+  +latitude : float
+  +longitude : float
+  +created_at : datetime
+  +updated_at : datetime
+
+  +user()
+  +responses()
+  +favorites()
+}
+
+' =====================
+' 💡 Response
+' =====================
+class Response {
+  +id : int
+  +content : text
+  +created_at : datetime
+  +updated_at : datetime
+
+  +user()
+  +question()
+}
+
+' =====================
+' ⭐ Favorite
+' =====================
+class Favorite {
+  +id : int
+  +created_at : datetime
+
+  +user()
+  +question()
+}
+
+' =====================
+' 🔗 Relations
+' =====================
+
+User "1" -- "0..*" Question : hasMany
+Question "1" -- "1" User : belongsTo
+
+Question "1" -- "0..*" Response : hasMany
+Response "1" -- "1" Question : belongsTo
+
+User "1" -- "0..*" Response : hasMany
+Response "1" -- "1" User : belongsTo
+
+User "1" -- "0..*" Favorite : hasMany
+Favorite "1" -- "1" User : belongsTo
+
+Question "1" -- "0..*" Favorite : hasMany
+Favorite "1" -- "1" Question : belongsTo
+@enduml
