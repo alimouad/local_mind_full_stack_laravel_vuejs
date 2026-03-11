@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Question extends Model
 {
     protected $fillable = [
+        'user_id',
         'title',
         'content',
         'location',
@@ -24,8 +25,6 @@ class Question extends Model
         return $this->hasMany(Answer::class);
     }
 
-    //A user can favorite many questions
-    // A question can be favorited by many users
     public function favoritedBy()
     {
         return $this->belongsToMany(User::class, 'favourites');

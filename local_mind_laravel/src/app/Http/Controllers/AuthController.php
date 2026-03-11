@@ -5,66 +5,65 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    public function login()
-    {
-        return view('pages.auth.login');
-    }
 
-    public function register()
+    public function login(Request $request)
     {
-        return view('pages.auth.register');
-    }
-
-    public function processLogin(Request $request)
-    {
-        // Process login data here
         $request->validate([
-            'email' => 'required|string|email|max:255',
-            'password' => 'required|string|min:8',
+            'email'    => 'required|string|email',
+            'password' => 'required|string',
         ]);
 
-        $user = $request->only('email', 'password');
-
-        if (Auth::attempt($user)) {
-            $request->session()->regenerate();
-            return match (auth()->user()->role) {
-                'ADMIN' => redirect()->intended(route('admin.home')),
-                'USER' => redirect()->intended(route('home')), // Specific student route
-                default => redirect()->intended(route('home')),
-            };
+        if (!Auth::attempt($request->only('email', 'password'))) {
+            return response()->json(['message' => 'Invalid credentials'], 401);
         }
-        throw ValidationException::withMessages([
-            'credentials' => 'Sorry, incorrect credentials',
-        ]);
+
+        $user = Auth::user();
+        $token = Str::random(60);
+        $user->api_token = $token;
+        $user->save();
+
+        return response()->json([
+            'user' => $user->only('id', 'name', 'email', 'role'),
+        ])->cookie('api_token', $token, 60 * 24 * 7, '/', null, false, true);
     }
-    public function processRegister(Request $request)
+
+    public function register(Request $request)
     {
-        // Process registration data here
-        $credentials = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed',
-        ]);
-        $user = User::create([
-            'name' => $credentials['name'],
-            'email' => $credentials['email'],
-            'password' => bcrypt($credentials['password']),
+        $validated = $request->validate([
+            'name'                  => 'required|string|max:255',
+            'email'                 => 'required|string|email|max:255|unique:users',
+            'password'              => 'required|string|min:8|confirmed',
         ]);
 
-        Auth::login($user);
-        return redirect()->route('login')->with('success', 'the account created successfully');
+        $token = Str::random(60);
+
+        $user = User::create([
+            'name'      => $validated['name'],
+            'email'     => $validated['email'],
+            'password'  => bcrypt($validated['password']),
+            'api_token' => $token,
+        ]);
+
+        return response()->json([
+            'user' => $user->only('id', 'name', 'email', 'role'),
+        ], 201)->cookie('api_token', $token, 60 * 24 * 7, '/', null, false, true);
     }
 
     public function logout(Request $request)
     {
-        Auth::logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-        return redirect()->route('login');
-        // Process logout here
+        $user = $request->user();
+
+        if ($user) {
+            $user->update(['api_token' => null]);
+        }
+
+        return response()->json(['message' => 'Logged out successfully'])
+            ->cookie('api_token', '', -1, '/', null, false, true);
     }
 }
+
