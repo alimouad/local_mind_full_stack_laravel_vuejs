@@ -2,35 +2,60 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Favourite;
 use App\Models\Question;
-
 use Illuminate\Http\Request;
 
 class FavouriteController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $user = auth()->user();
+        $user = $request->user();
 
-        $favoriteQuestions = $user->favoriteQuestions()
-            ->with('user')        
+        $questions = $user->favoriteQuestions()
+            ->with('user')
+            ->withCount('answers')
             ->latest()
-            ->get();
+            ->get()
+            ->map(function ($question) use ($user) {
+                return [
+                    'id' => $question->id,
+                    'title' => $question->title,
+                    'content' => $question->content,
+                    'location' => $question->location,
+                    'created_at' => $question->created_at,
+                    'answers_count' => $question->answers_count,
+                    'is_favourited' => true,
+                    'is_owner' => $question->user_id === $user->id,
+                    'user' => [
+                        'id' => $question->user?->id,
+                        'name' => $question->user?->name,
+                        'email' => $question->user?->email,
+                    ],
+                ];
+            });
 
-        return view('pages.user.favorites', compact('favoriteQuestions'));
-
+        return response()->json(['data' => $questions]);
     }
-    //
-    public function setFavourite(Question $question)
+
+    public function toggle(Request $request, Question $question)
     {
-        $user = auth()->user();
-            
-        if ($question->isFavorited()) {
-            $user->favoriteQuestions()->detach($question->id);
-        } else {
-            $user->favoriteQuestions()->attach($question->id);
+        $user = $request->user();
+
+        $existing = Favourite::where('user_id', $user->id)
+            ->where('question_id', $question->id)
+            ->first();
+
+        if ($existing) {
+            $existing->delete();
+            return response()->json(['is_favourited' => false]);
         }
 
-        return back();
+        Favourite::create([
+            'user_id'     => $user->id,
+            'question_id' => $question->id,
+        ]);
+
+        return response()->json(['is_favourited' => true]);
     }
 }

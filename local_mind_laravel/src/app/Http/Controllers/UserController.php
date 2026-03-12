@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Answer;
 use App\Models\Question;
+use App\Models\User;
 use Exception;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
@@ -12,66 +13,46 @@ use Illuminate\Http\Request;
 
 class UserController extends Controller
 {
-    //
-    public function index()
-    {
-        $questions =  Question::all();
-        return view('pages.user.home', [
-            'questions' => $questions
-        ]);
-    }
 
-    public function questionForm()
-    {
-        return view('pages.user.add_question');
-    }
 
-    public function questionProcess(Request $request)
+    public function usersApi(Request $request)
     {
 
-        $data = $request->validate([
-            'title' => 'required|string|max:255',
-            'content' => 'required|string',
-            'location' => 'required|string|max:255',
-            'latitude' => 'required|numeric',
-            'longitude' => 'required|numeric',
-        ]);
-        Auth::user()->questions()->create($data);
 
-        return redirect()->route('home')->with('success', 'Question submitted successfully!');
+        $users = User::withCount(['questions', 'answers'])
+            ->latest()
+            ->get()
+            ->map(function ($user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'role' => $user->role,
+                    'created_at' => $user->created_at,
+                    'questions_count' => $user->questions_count,
+                    'answers_count' => $user->answers_count,
+                ];
+            });
+
+        return response()->json(['data' => $users]);
     }
 
-        public function viewQuestion($id)
-        {
-            $question = Question::with(['user', 'answers.user'])->findOrFail($id);
 
-            return view('pages.user.view_question', compact('question'));
+    public function deleteUserApi(Request $request, int $id)
+    {
+
+        $user = User::findOrFail($id);
+
+        if ($user->role === 'ADMIN') {
+            return response()->json(['message' => 'Admin accounts cannot be deleted.'], 422);
         }
 
-    public function deleteQuestion(Request $request, Question $question)
-    {
-        Gate::authorize('delete', $question);
-        
-        $question->delete();
-        return redirect()->route('home')
-            ->with('success', 'Question deleted successfully!');
-    }
+        if ($request->user()?->id === $user->id) {
+            return response()->json(['message' => 'You cannot delete your own account.'], 422);
+        }
 
+        $user->delete();
 
-
-    public function addAnswer(Request $request, Question $question)
-    {
-        $data = $request->validate([
-            'content' => 'required|string|max:255',
-        ]);
-
-        $question->answers()->create([
-            'content' => $data['content'],
-            'user_id' => auth()->id(),
-        ]);
-
-        return redirect()
-            ->route('question.view', $question->id)
-            ->with('success', 'Answer submitted successfully!');
+        return response()->json(['message' => 'User deleted successfully.']);
     }
 }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Question;
+use App\Models\Answer;
 
 class AnswerController extends Controller
 {
@@ -29,5 +30,50 @@ class AnswerController extends Controller
             'message' => 'Answer posted successfully!',
             'answer' => $answer->load('user'),
         ], 201);
+    }
+
+    public function destroy(Request $request, Answer $answer)
+    {
+        if ($answer->user_id !== $request->user()->id) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        $answer->delete();
+
+        return response()->json(['message' => 'Answer deleted successfully.']);
+    }
+
+    public function answersApi(Request $request)
+    {
+        $answers = Answer::with(['user', 'question'])
+            ->latest()
+            ->get()
+            ->map(function ($answer) {
+                return [
+                    'id' => $answer->id,
+                    'content' => $answer->content,
+                    'created_at' => $answer->created_at,
+                    'user' => [
+                        'id' => $answer->user?->id,
+                        'name' => $answer->user?->name,
+                        'email' => $answer->user?->email,
+                    ],
+                    'question' => [
+                        'id' => $answer->question?->id,
+                        'title' => $answer->question?->title,
+                    ],
+                ];
+            });
+
+        return response()->json(['data' => $answers]);
+    }
+
+      public function deleteAnswerApi(Request $request, int $id)
+    {
+
+        $answer = Answer::findOrFail($id);
+        $answer->delete();
+
+        return response()->json(['message' => 'Answer deleted successfully. m']);
     }
 }

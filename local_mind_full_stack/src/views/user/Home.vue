@@ -68,6 +68,25 @@ async function loadQuestions() {
     }
 }
 
+async function toggleFav(question) {
+    try {
+        const response = await axiosClient.post(`/questions/${question.id}/favourite`);
+        question.is_favourited = response.data.is_favourited;
+    } catch (e) {
+        // silent
+    }
+}
+
+async function deleteQuestion(question) {
+    if (!confirm('Delete this question? This cannot be undone.')) return;
+    try {
+        await axiosClient.delete(`/questions/${question.id}`);
+        questions.value = questions.value.filter(q => q.id !== question.id);
+    } catch (e) {
+        errorMessage.value = e.response?.data?.message ?? 'Failed to delete question.';
+    }
+}
+
 onMounted(loadQuestions);
 </script>
 <template>
@@ -178,12 +197,30 @@ onMounted(loadQuestions);
                                             class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full">
                                         </div>
                                     </div>
-                                    <span class="text-xs font-bold text-slate-700">{{ question.user?.name ?? 'Anonymous'
-                                        }}</span>
+                                    <span class="text-xs font-bold text-slate-700">{{ question.user?.name ?? 'Anonymous' }}</span>
                                 </div>
 
-                                <div class="flex md:hidden items-center text-[11px] font-bold text-slate-400 uppercase">
-                                    {{ answerCount(question) }} Answers
+                                <div class="flex items-center gap-2">
+                                    <div class="flex md:hidden items-center text-[11px] font-bold text-slate-400 uppercase mr-2">
+                                        {{ answerCount(question) }} Answers
+                                    </div>
+
+                                    <button @click.prevent="toggleFav(question)"
+                                        :title="question.is_favourited ? 'Remove from favourites' : 'Add to favourites'"
+                                        class="p-2 rounded-xl transition-all"
+                                        :class="question.is_favourited ? 'text-rose-500 bg-rose-50 hover:bg-rose-100' : 'text-slate-400 bg-slate-50 hover:text-rose-400 hover:bg-rose-50'">
+                                        <svg class="w-4 h-4" viewBox="0 0 24 24" :fill="question.is_favourited ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                        </svg>
+                                    </button>
+
+                                    <button v-if="question.is_owner" @click.prevent="deleteQuestion(question)"
+                                        title="Delete question"
+                                        class="p-2 rounded-xl text-slate-400 bg-slate-50 hover:text-red-500 hover:bg-red-50 transition-all">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                    </button>
                                 </div>
                             </div>
                         </div>

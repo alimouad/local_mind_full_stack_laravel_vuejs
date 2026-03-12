@@ -38,20 +38,81 @@ class QuestionController extends Controller
         ], 201);
     }
 
-    public function index()
+    public function index(Request $request)
     {
+        $userId = $request->user()->id;
+
         $questions = Question::with('user')
             ->latest()
             ->paginate(15);
 
+        $questions->getCollection()->transform(function ($question) use ($userId) {
+            $question->is_favourited = $question->favoritedBy()->where('user_id', $userId)->exists();
+            $question->is_owner = $question->user_id === $userId;
+            return $question;
+        });
+
         return response()->json($questions);
     }
 
-    public function show(Question $question)
+    public function show(Request $request, Question $question)
     {
-        return response()->json($question->load(['user', 'answers.user']));
+        $userId = $request->user()->id;
+        $question->load(['user', 'answers.user']);
+
+        $question->is_favourited = $question->favoritedBy()->where('user_id', $userId)->exists();
+        $question->is_owner = $question->user_id === $userId;
+
+        $question->answers->transform(function ($answer) use ($userId) {
+            $answer->is_owner = $answer->user_id === $userId;
+            return $answer;
+        });
+
+        return response()->json($question);
     }
 
+    public function destroy(Request $request, Question $question)
+    {
+        if ($question->user_id !== $request->user()->id) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
 
- 
+        $question->delete();
+
+        return response()->json(['message' => 'Question deleted successfully.']);
+    }
+    public function questionsApi(Request $request)
+    {
+      
+
+        $questions = Question::with('user')
+            ->withCount('answers')
+            ->latest()
+            ->get()
+            ->map(function ($question) {
+                return [
+                    'id' => $question->id,
+                    'title' => $question->title,
+                    'content' => $question->content,
+                    'location' => $question->location,
+                    'created_at' => $question->created_at,
+                    'answers_count' => $question->answers_count,
+                    'user' => [
+                        'id' => $question->user?->id,
+                        'name' => $question->user?->name,
+                        'email' => $question->user?->email,
+                    ],
+                ];
+            });
+
+        return response()->json(['data' => $questions]);
+    }
+      public function deleteQuestionApi(Request $request, int $id)
+    {
+
+        $question = Question::findOrFail($id);
+        $question->delete();
+
+        return response()->json(['message' => 'Question deleted successfully.']);
+    }
 }

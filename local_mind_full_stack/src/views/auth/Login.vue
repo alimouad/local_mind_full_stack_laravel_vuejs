@@ -16,8 +16,16 @@ function submit() {
     errorMessage.value = '';
     axiosClient.post('/login', data.value)
         .then(response => {
-            console.log('Login successful:', response.data);
-            router.push({ name: 'home' });
+            const user = response.data?.user;
+            const role = user?.role ?? 'USER';
+
+            if (user?.name) {
+                localStorage.setItem('user_name', user.name);
+            }
+
+            localStorage.setItem('user_role', role);
+
+            router.push({ name: role === 'ADMIN' ? 'admin-home' : 'home' });
         })
         .catch(error => {
             errorMessage.value = error.response?.data?.message ?? 'Login failed.';
@@ -40,9 +48,9 @@ function submit() {
                 <div>
                     <label for="email" class="block text-sm font-semibold text-gray-700">Email Address</label>
                     <div class="mt-1 relative">
-                        <input id="email" type="email" v-model="data.email" name="email" value="{{ old('email') }}" required autofocus
+                        <input id="email" type="email" v-model="data.email" name="email" required autofocus
                             placeholder="name@company.com"
-                            class="block w-full px-4 py-3 rounded-xl border-gray-200 shadow-sm focus:ring-2 focus:ring-primary focus:border-primary border transition-all duration-200 outline-none @error('email') border-red-500 @enderror">
+                            class="block w-full px-4 py-3 rounded-xl border-gray-200 shadow-sm focus:ring-2 focus:ring-primary focus:border-primary border transition-all duration-200 outline-none">
                     </div>
 
                 </div>
@@ -54,7 +62,7 @@ function submit() {
                     </div>
                     <div class="mt-1 relative">
                         <input id="password" type="password" v-model="data.password" name="password" required placeholder="••••••••"
-                            class="block w-full px-4 py-3 rounded-xl border-gray-200 shadow-sm focus:ring-2 focus:ring-primary focus:border-primary border transition-all duration-200 outline-none @error('password') border-red-500 @enderror">
+                            class="block w-full px-4 py-3 rounded-xl border-gray-200 shadow-sm focus:ring-2 focus:ring-primary focus:border-primary border transition-all duration-200 outline-none">
                     </div>
 
                 </div>
