@@ -51,7 +51,38 @@ class QuestionController extends Controller
     {
         return response()->json($question->load(['user', 'answers.user']));
     }
+    public function questionsApi(Request $request)
+    {
+      
 
+        $questions = Question::with('user')
+            ->withCount('answers')
+            ->latest()
+            ->get()
+            ->map(function ($question) {
+                return [
+                    'id' => $question->id,
+                    'title' => $question->title,
+                    'content' => $question->content,
+                    'location' => $question->location,
+                    'created_at' => $question->created_at,
+                    'answers_count' => $question->answers_count,
+                    'user' => [
+                        'id' => $question->user?->id,
+                        'name' => $question->user?->name,
+                        'email' => $question->user?->email,
+                    ],
+                ];
+            });
 
- 
+        return response()->json(['data' => $questions]);
+    }
+      public function deleteQuestionApi(Request $request, int $id)
+    {
+
+        $question = Question::findOrFail($id);
+        $question->delete();
+
+        return response()->json(['message' => 'Question deleted successfully.']);
+    }
 }

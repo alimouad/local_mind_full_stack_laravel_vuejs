@@ -6,71 +6,54 @@ use App\Models\Question;
 use App\Models\Answer;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 
 class AdminController extends Controller
 {
-    //
-    public function dashboard()
+  
+
+    public function dashboardApi(Request $request)
     {
-        // Cards data
+
         $totalQuestions = Question::count();
-        $totalAnswers   = Answer::count();
-        $newUsers       = User::where('created_at', '>=', now()->subDays(7))->count();
+        $totalAnswers = Answer::count();
+        $newUsers = User::where('created_at', '>=', now()->subDays(7))->count();
+
         $recentQuestions = Question::with('user')
-            ->whereDate('created_at', '>=', now()->subDay())
+            ->withCount('answers')
             ->latest()
             ->take(10)
-            ->get();
+            ->get()
+            ->map(function ($question) {
+                return [
+                    'id' => $question->id,
+                    'title' => $question->title,
+                    'content' => $question->content,
+                    'created_at' => $question->created_at,
+                    'answers_count' => $question->answers_count,
+                    'user' => [
+                        'id' => $question->user?->id,
+                        'name' => $question->user?->name,
+                    ],
+                ];
+            });
 
-        return view('pages.admin.dashboard', compact(
-            'totalQuestions',
-            'totalAnswers',
-            'newUsers',
-            'recentQuestions'
-        ));
-
-       
-    }
-    
-    public function getQuestions()
-    {
-        $questions = Question::all();
-        return view('pages.admin.questions', compact('questions'));
-    }
-    public function getAnswers()
-    {
-        $answers = Answer::all();
-        return view('pages.admin.answers', compact('answers'));
-    }
-
-    public function deleteQuestions($id)
-    {
-        $question = Question::findOrFail($id);
-        $question->delete();
-
-        return redirect()->route('admin.questions')
-            ->with('success', 'Question deleted successfully!');
-    }
-      public function deleteAnswers($id)
-    {
-        $question = Answer::findOrFail($id);
-        $question->delete();
-
-        return redirect()->route('admin.answers')
-            ->with('success', 'Answer deleted successfully!');
-    }
-      public function getUsers()
-    {
-        $users = User::all();
-        return view('pages.admin.users', compact('users'));
+        return response()->json([
+            'totals' => [
+                'questions' => $totalQuestions,
+                'answers' => $totalAnswers,
+                'new_users' => $newUsers,
+            ],
+            'recent_questions' => $recentQuestions,
+        ]);
     }
 
-    public function deleteUsers($id)
-    {
-        $users = User::findOrFail($id);
-        $users->delete();
 
-        return redirect()->route('admin.users')
-            ->with('success', 'User deleted successfully!');
-    }
+  
+
+  
+
+   
+
+
 }
