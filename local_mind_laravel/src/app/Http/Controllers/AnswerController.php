@@ -31,7 +31,19 @@ class AnswerController extends Controller
             'answer' => $answer->load('user'),
         ], 201);
     }
-     public function answersApi(Request $request)
+
+    public function destroy(Request $request, Answer $answer)
+    {
+        if ($answer->user_id !== $request->user()->id) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        $answer->delete();
+
+        return response()->json(['message' => 'Answer deleted successfully.']);
+    }
+
+    public function answersApi(Request $request)
     {
         $answers = Answer::with(['user', 'question'])
             ->latest()
@@ -62,6 +74,6 @@ class AnswerController extends Controller
         $answer = Answer::findOrFail($id);
         $answer->delete();
 
-        return response()->json(['message' => 'Answer deleted successfully.']);
+        return response()->json(['message' => 'Answer deleted successfully. m']);
     }
 }

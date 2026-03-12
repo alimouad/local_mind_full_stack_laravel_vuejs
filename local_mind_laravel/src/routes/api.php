@@ -5,6 +5,7 @@ use App\Http\Controllers\QuestionController;
 use App\Http\Controllers\AnswerController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\FavouriteController;
 use App\Models\Question;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -23,7 +24,11 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/questions', [QuestionController::class, 'index']);
     Route::get('/questions/{question}', [QuestionController::class, 'show']);
     Route::post('/questions', [QuestionController::class, 'store']);
+    Route::delete('/questions/{question}', [QuestionController::class, 'destroy']);
     Route::post('/questions/{question}/answers', [AnswerController::class, 'storeAnswer']);
+    Route::delete('/answers/{answer}', [AnswerController::class, 'destroy']);
+    Route::post('/questions/{question}/favourite', [FavouriteController::class, 'toggle']);
+    Route::get('/favourites', [FavouriteController::class, 'index']);
 
 });
 

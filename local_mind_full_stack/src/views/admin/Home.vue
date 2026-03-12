@@ -6,6 +6,7 @@ import AdminLayout from '@/layouts/AdminLayout.vue';
 
 const loading = ref(true);
 const errorMessage = ref('');
+
 const dashboard = ref({
     totals: {
         questions: 0,

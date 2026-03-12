@@ -8,6 +8,7 @@ const loading = ref(true);
 const deletingId = ref(null);
 const errorMessage = ref('');
 const search = ref('');
+const successMessage = ref('');
 const questions = ref([]);
 
 const filteredQuestions = computed(() => {
@@ -57,7 +58,8 @@ async function deleteQuestion(id) {
     try {
         await axiosClient.delete(`/admin/questions/${id}`);
         questions.value = questions.value.filter((question) => question.id !== id);
-    } catch (error) {
+        successMessage.value = response.data.message;
+    } catch (error) {``
         errorMessage.value = error.response?.data?.message ?? 'Failed to delete question.';
     } finally {
         deletingId.value = null;
@@ -71,6 +73,9 @@ onMounted(loadQuestions);
     <AdminLayout>
         <section class="space-y-8">
             <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+                   <div v-if="successMessage" class="mb-4 p-3 rounded-lg bg-green-100 text-green-700 text-sm font-medium">
+                {{ successMessage }}
+            </div>
                 <div>
                     <p class="text-[11px] font-black uppercase tracking-[0.25em] text-emerald-500">Admin Questions</p>
                     <h1 class="text-4xl font-black text-slate-900 tracking-tight mt-2">Question moderation</h1>

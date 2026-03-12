@@ -1,10 +1,11 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
-import { RouterLink, useRoute } from 'vue-router';
+import { RouterLink, useRoute, useRouter } from 'vue-router';
 import UserLayout from '@/layouts/UserLayout.vue';
 import axiosClient from '@/axios.js';
 
 const route = useRoute();
+const router = useRouter();
 
 const question = ref(null);
 const loading = ref(true);
@@ -12,6 +13,7 @@ const errorMessage = ref('');
 const answerForm = ref({ content: '' });
 const answerErrors = ref({});
 const answerSuccess = ref('');
+const success = ref('');
 const submittingAnswer = ref(false);
 
 const answers = computed(() => question.value?.answers ?? []);
@@ -61,6 +63,41 @@ async function loadQuestion() {
     }
 }
 
+async function toggleFav() {
+    if (!question.value) return;
+    try {
+        const response = await axiosClient.post(`/questions/${question.value.id}/favourite`);
+        question.value.is_favourited = response.data.is_favourited;
+    } catch (e) {
+        // silent
+    }
+}
+
+async function deleteQuestion() {
+    if (!confirm('Delete this question? This cannot be undone.')) return;
+    try {
+        await axiosClient.delete(`/questions/${question.value.id}`);
+        router.push({ name: 'home' });
+
+    } catch (e) {
+        errorMessage.value = e.response?.data?.message ?? 'Failed to delete question.';
+    }
+}
+
+async function deleteAnswer(answer) {
+    if (!confirm('Delete this answer?')) return;
+    try {
+        await axiosClient.delete(`/answers/${answer.id}`);
+        question.value.answers = question.value.answers.filter(a => a.id !== answer.id);
+        
+    } catch (e) {
+        // silent
+    }
+    finally {
+        success.value = response.data.message ?? 'Answer deleted successfully!';
+    }
+}
+
 async function submitAnswer() {
     answerErrors.value = {};
     answerSuccess.value = '';
@@ -106,8 +143,29 @@ onMounted(loadQuestion);
                 </svg>
                 Back to Feed
             </RouterLink>
+             <transition name="fade">
+                <div v-if="success" class="mt-6 p-4 rounded-2xl bg-emerald-500 text-white text-sm font-bold shadow-lg shadow-emerald-200 flex items-center gap-3 animate-in slide-in-from-top-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
+                    {{ success }}
+                </div>
+            </transition>
             
             <div v-if="question" class="flex items-center gap-2">
+                <button @click="toggleFav"
+                    :title="question.is_favourited ? 'Remove from favourites' : 'Add to favourites'"
+                    class="p-2.5 rounded-full transition-all"
+                    :class="question.is_favourited ? 'text-rose-500 bg-rose-50 hover:bg-rose-100' : 'text-slate-400 bg-slate-50 hover:text-rose-400 hover:bg-rose-50'">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" :fill="question.is_favourited ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
+                </button>
+                <button v-if="question.is_owner" @click="deleteQuestion"
+                    title="Delete question"
+                    class="p-2.5 rounded-full bg-slate-50 text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                </button>
                 <button class="p-2.5 rounded-full bg-slate-50 text-slate-400 hover:text-primary hover:bg-primary/5 transition-all" title="Share">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 100-2.684 3 3 0 000 2.684zm0 9a3 3 0 100-2.684 3 3 0 000 2.684z" /></svg>
                 </button>
@@ -234,6 +292,12 @@ onMounted(loadQuestion);
                                         <span class="w-1 h-1 rounded-full bg-slate-300"></span>
                                         <span class="text-xs text-slate-400 font-bold uppercase tracking-wider">{{ formatRelativeDate(answer.created_at) }}</span>
                                     </div>
+                                    <button v-if="answer.is_owner" @click="deleteAnswer(answer)" title="Delete answer"
+                                        class="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                    </button>
                                 </div>
                                 <div class="text-slate-600 text-lg leading-relaxed font-medium">
                                     {{ answer.content }}

@@ -12,6 +12,7 @@ import AdminAnswers from '@/views/admin/Answers.vue';
 import AdminUsers from '@/views/admin/Users.vue';
 import AddQuestion from '@/views/user/AddQuestion.vue';
 import ViewQuestion from '@/views/user/ViewQuestion.vue';
+import Favourites from '@/views/user/Favourites.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -30,6 +31,11 @@ const router = createRouter({
       path: '/question/:id',
       name: 'view-question',
       component: ViewQuestion,
+    },
+    {
+      path: '/favorites',
+      name: 'favorites',
+      component: Favourites,
     },
     {
       path: '/login',
